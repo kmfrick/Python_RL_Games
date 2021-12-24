@@ -1,237 +1,220 @@
-#!/usr/bin/env python
 import numpy as np
-from collections import defaultdict
-
-class QLearningAgent:
-    def __init__(self, alpha, epsilon, discount, get_legal_actions):
-        """
-        Q-Learning Agent based on https://inst.eecs.berkeley.edu/~cs188/sp19/projects.html
-        Attributes
-          - self.epsilon (exploration prob)
-          - self.alpha (learning rate)
-          - self.discount (discount rate aka gamma)
-
-        Methods
-          - self.get_legal_actions(state) {state, hashable -> list of actions, each is hashable}
-            which returns legal actions for a state
-          - self.get_qvalue(state,action)
-            which returns Q(state,action)
-          - self.set_qvalue(state,action,value)
-            which sets Q(state,action) := value
-        """
-
-        self.get_legal_actions = get_legal_actions
-        self._qvalues = defaultdict(lambda: defaultdict(lambda: 0))
-        self.alpha = alpha
-        self.epsilon = epsilon
-        self.discount = discount
-
-    def get_qvalue(self, state, action):
-        """ Returns Q(state,action) """
-        return self._qvalues[state][action]
-
-    def set_qvalue(self, state, action, value):
-        """ Sets the Qvalue for [state,action] to the given value """
-        self._qvalues[state][action] = value
-
-    def get_value(self, state):
-        """
-        Compute agent's estimate of V(s) using current q-values
-        V(s) = max_over_action Q(state,action) over possible actions.
-        """
-        possible_actions = self.get_legal_actions(state)
-
-        # If there are no legal actions, return 0.0
-        if len(possible_actions) == 0:
-            return 0.0
-        qvals = []
-        for a in possible_actions:
-          qvals.append(self.get_qvalue(state, a))
-        return max(qvals)
-
-
-    def update(self, state, action, reward, next_state):
-        """
-        Q-Value update here:
-           Q(s,a) := (1 - alpha) * Q(s,a) + alpha * (r + gamma * V(s'))
-        """
-
-        # agent parameters
-        gamma = self.discount
-        learning_rate = self.alpha
-
-        oldq = self.get_qvalue(state, action)
-        newq = (1 - learning_rate) * oldq + learning_rate * (reward + gamma * self.get_value(next_state))
-        self.set_qvalue(state, action, newq)
-
-    def get_best_action(self, state):
-        """
-        Compute the best action to take in a state (using current q-values).
-        """
-        possible_actions = self.get_legal_actions(state)
-
-        # If there are no legal actions, return None
-        if len(possible_actions) == 0:
-            return None
-
-        idx = []
-        qvals = []
-        for a in possible_actions:
-          qvals.append(self.get_qvalue(state, a))
-          idx.append(a)
-
-        return idx[np.argmax(qvals)]
-
-    def get_action(self, state):
-        """
-        Compute the action to take in the current state, including exploration.
-        With probability self.epsilon, we should take a random action.
-            otherwise - the best policy action (self.get_best_action).
-        """
-
-        # Pick Action
-        possible_actions = self.get_legal_actions(state)
-        action = None
-
-        # If there are no legal actions, return None
-        if len(possible_actions) == 0:
-            return None
-
-        # agent parameters:
-        epsilon = self.epsilon
-
-        p = np.random.uniform(0, 1)
-        if p < epsilon:
-          return np.random.choice(possible_actions)
-        else:
-          return self.get_best_action(state)
-    def print_qtable(self):
-      for s in range(0, n_states):
-        print("[", end="")
-        for a in range(0, n_actions):
-          print(p1.get_qvalue(s, a), end=", ")
-        print("]")
-      print("--------")
-
-
-n_actions = 2 # Cooperate or defect
-n_states = 2**2 # one-period memory, 2 actions for 2 players
-epochs = 0
-import random
-
-class IteratedPrisonerDilemma:
-    def __init__(self):
-        self.states = [0, 1, 2, 3]
-        self.reset()
-
-    def reset(self):
-        self.payoffs = [[(5, 5), (-5, 15)], [(15, -5), (0, 0)]]
-        self.next_s = [[0, 1], [2, 3]]
-        self.turn = 0
-        self.p1action = -1
-        self.p2action = -1
-        self.s = random.randrange(0, n_states)
-        if epochs > 1000:
-            self.s = 3
-        print("starting state:" + str(self.s))
-        return 0
-
-    def step(self, action):
-        if self.turn == 0:
-            self.turn = 1
-            self.p1action = action
-            self.p2action = -1
-            return None
-        elif self.turn == 1:
-            self.turn = 0
-            self.s = self.next_s[self.p1action][action]
-            self.p2action = action
-            return self.s, self.payoffs[self.p1action][self.p2action]
-        else:
-            raise ValueError
-
-def play_and_train(env, p1, p2, t_max=10**4):
-    """
-    This function:
-    - runs a full game, actions given by agent's e-greedy policy
-    - trains agent using agent.update(...) whenever it is possible
-    - returns total reward
-    """
-    total_reward = (0.0, 0.0)
-    s = env.reset()
-
-    for t in range(t_max):
-        a1 = p1.get_action(s)
-        env.step(a1)
-        a2 = p2.get_action(s)
-        next_s, (r1, r2) = env.step(a2)
-
-        # train (update) agents for state s
-        p1.update(s, a1, r1, next_s)
-        p2.update(s, a2, r2, next_s)
-
-        s = next_s
-        total_reward = tuple(map(lambda i, j: i + j, total_reward, (r1, r2)))
-
-    return total_reward
-
-
-
-
-eps0 = 0.25
-p1 = QLearningAgent(
-    alpha=0.5, epsilon=eps0, discount=0.99,
-    get_legal_actions=lambda s: range(n_actions))
-
-p2 = QLearningAgent(
-    alpha=0.5, epsilon=eps0, discount=0.99,
-    get_legal_actions=lambda s: range(n_actions))
-env = IteratedPrisonerDilemma()
-rewards = []
-epsilons = []
-
-from IPython.display import clear_output
-
-num_epochs = 4000
-
-for i in range(num_epochs):
-    reward = play_and_train(env, p1, p2)
-    clear_output(wait=True)
-    print("Epoch " + str(i))
-    epochs +=1
-
-    rewards.append(reward)
-    print(reward)
-    epsilons.append(p1.epsilon)
-    print("Best actions for player 1: " + str([p1.get_best_action(s) for s in range(0, n_states)]))
-    print("Best actions for player 2: " + str([p2.get_best_action(s) for s in range(0, n_states)]))
-
-
-    p1.epsilon *= 0.995
-    p2.epsilon *= 0.995
-
-
 import matplotlib.pyplot as plt
 import pandas as pd
 
-# Moving average to smooth spikes 
-# Usually, moving average is cheating, but this is computer science and not finance
-# Drawing the same plot without moving average shows the same tendency
-def moving_average(x, span=100):
-    return pd.DataFrame({'x': np.asarray(x)}).x.ewm(span=span).mean().values
+import time
 
-for r in zip(*rewards):
-    r = moving_average(r)
-    plt.plot(range(0, len(rewards)), np.array(r))
-plt.title('Rewards')
-plt.xlabel('Period')
-plt.ylabel('Reward')
-plt.legend(['p1', 'p2'], loc='lower center')
-plt.show()
-plt.plot(np.array(epsilons))
-plt.title('Exploration rate')
-plt.xlabel('Period')
-plt.ylabel('Epsilon')
-plt.show()
+from tqdm import tqdm
+
+class StaticGame():
+
+    payoffs_for_game = {'prisoner_dilemma': [[(5, 5), (-5, 15)], [(15, -5), (0, 0)]],
+                        'battle_sexes': [[(3, 2), (0, 0)], [(0, 0), (2, 3)]],
+                        'stag_hunt': [[(4, 4), (1, 3)], [(3, 1), (2, 2)]],
+                        'chicken': [[(0, 0), (-1, 1)], [(1, -1), (-100, -100)]],
+                        'matching_pennies': [[(1, -1), (-1, 1)], [(-1, 1), (1, -1)]],
+                        'rock_paper_scissor': [[(0, 0), (-1, 1), (1, -1)], [(1, -1), (0, 0), (-1, 1)], [(-1, 1), (1, -1), (0, 0)]],
+                        'optional_prisoner_dilemma': [[(-1, -1), (-4, 0), (-2, -2)], [(0, -4), (-3, -3), (-2, -2)], [(-2, -2), (-2, -2), (-2, -2)]],
+                        'price_game': [[(0.204, 0.204), (0.297, 0.164), (0.352, 0.091)], [(0.164, 0.297), (0.304, 0.304), (0.427, 0.2)], [(0.091, 0.352), (0.2, 0.427), (0.336, 0.336)]]}
+    def __init__(self, game, n_agents, memory):
+        self.game_mode = game
+        self.payoffs = self.payoffs_for_game[game]
+        self.n_actions = len(self.payoffs)
+        self.memory = memory
+        self.rng = np.random.default_rng(int(time.time()))
+        self.n_states = self.n_actions ** (n_agents * memory)    # memory_length = 1
+        self.states = list(range(0, self.n_states))
+        self.next_state = np.array_split(self.states, self.n_actions)
+        self.initial_state = 0
+
+    def reset_initial_state(self):
+        self.initial_state = self.rng.choice(self.states)
+        return self.initial_state
+
+    def get_payoffs(self, action1, action2):
+        return self.payoffs[action1][action2]
+
+    def get_next_state(self, action1, action2):
+        if self.memory > 0:
+            return self.next_state[action1][action2]
+        else:
+            return 0
+
+class Agent():
+
+    def __init__(self, game, alpha, epsilon, gamma):
+        self.alpha = alpha
+        self.gamma = gamma
+        self.epsilon = epsilon
+        self.game = game
+        self.Q = np.zeros([game.n_states, game.n_actions])
+        self.strategy_set = list(range(0,game.n_actions))
+
+    def get_best_action(self, state):
+        '''
+        Compute the best action in a given state according to the current q-values
+        '''
+        return np.argmax(self.Q[state])
+
+    def get_action(self, state):
+        '''
+        Computes current action under e-greedy exploration
+        '''
+        p = self.game.rng.uniform(0, 1)
+        if p < self.epsilon:
+            #exploration
+            return self.game.rng.choice(self.strategy_set)
+        else:
+            #exploitation (greedy action)
+            return self.get_best_action(state)
+
+    def update_q(self, state, action, reward, next_state):
+        '''
+        Q-learning update:     Q(s,a) <- (1 - alpha) * Q(s,a) + alpha * (R + gamma * V(s'))
+                            where V(s') = max_{a in A} Q(s',a) is the continuation value
+        '''
+        learning_rate = self.alpha
+        discount_rate = self.gamma
+
+        continuation_value = self.Q[next_state][self.get_best_action(next_state)]
+        self.Q[state][action] = (1 - learning_rate) * self.Q[state][action] + learning_rate * (reward + discount_rate * continuation_value)
 
 
+def train(game, player1, player2, episode_max = 10**4):
+
+    # reset initial state at the beginning of a new epoch
+    state = game.reset_initial_state()
+    # init arrays
+    total_reward1 = 0.0
+    total_reward2 = 0.0
+    freq_actions1 = np.zeros(game.n_actions)
+    freq_actions2 = np.zeros(game.n_actions)
+    freq_states = np.zeros(game.n_states)
+
+    # loop over episodes
+    for episode in range(episode_max):
+        # get epsilon-greedy action given current state
+        action1 = player1.get_action(state)
+        action2 = player2.get_action(state)
+
+        # collect instantaneous reward and observe next period state
+        reward1, reward2 = game.get_payoffs(action1, action2)
+        next_state = game.get_next_state(action1, action2)
+
+        # update q value for the current state according to learning rate, reward and continuation value
+        player1.update_q(state, action1, reward1, next_state)
+        player2.update_q(state, action2, reward2, next_state)
+
+        # set state to next state and iterate
+        state = next_state
+
+        # save rewards and basic stats
+        total_reward1 += reward1
+        total_reward2 += reward2
+        freq_actions1[action1] += 1
+        freq_actions2[action2] += 1
+        freq_states[state] += 1
+
+    return np.divide(freq_actions1,episode_max), np.divide(freq_actions2,episode_max), np.divide(freq_states,episode_max), (total_reward1, total_reward2)
+
+
+def show_epoch_outcome(i, reward, best_action_1, best_action_2, freq_states, freq_actions1, freq_actions2, epsilon, game, payoffs, players):
+    print('Game: \t ' + game.game_mode)
+    print('Payoffs: ' + str(payoffs), end='\n\n')
+    print('Period ' + str(i))
+    print('Limit strategies \t' + str(best_action_1) + ' , ' + str(best_action_2))
+    print('Total reward \t\t' + str(reward), end='\n\n')
+    print('Frequency states \t' + str(np.around(freq_states,3)))
+    print('Freq. player1''s actions ' + str(np.around(freq_actions1,3)))
+    print('Freq. player2''s actions ' + str(np.around(freq_actions2,3)))
+    # within brackets: probability of at least one agent exploring on an episode
+    print('Epsilon \t\t ' + str(np.around(epsilon,10)) + '\t ( '+str(np.around((epsilon**2 + 2*(epsilon)*(1-epsilon))*100,5)) + '% )', end='\n\n')
+
+    for player in players:
+        for s in range(game.n_states):
+            print("[", end="")
+            for a in range(game.n_actions):
+                print(player.Q[s, a], end=", ")
+            print("]")
+
+
+def main():
+
+    n_agents = 2
+    memory = 1             # 0 or 1
+
+    alpha1 = 0.5
+    alpha2 = 0.5
+    eps0 = 0.25
+    gamma = 0.99
+    # prisoner_dilemma, battle_sexes, stag_hunt, chicken, matching_pennies, rock_paper_scissor, optional_prisoner_dilemma, traveler_dilemma
+    game_mode = "prisoner_dilemma"
+
+    # initialize game and players
+    game = StaticGame(game_mode, n_agents, memory)
+    player1 = Agent(game, alpha1, eps0, gamma)
+    player2 = Agent(game, alpha2, eps0, gamma)
+
+    # convergence rules
+    convergence_target = 500
+    same_best_action_t = 0
+
+    # init best actions vectors (full of -1)
+    best_action_1 = np.full(game.n_states, -1)
+    best_action_2 = np.full(game.n_states, -1)
+
+    rewards = []
+    epsilons = []
+
+
+    # loop over epochs
+    for epoch in tqdm(range(10**5)):
+        # play, learn, and get rewards (+ stats)
+        freq_actions1, freq_actions2, freq_states, reward = train(game, player1, player2)
+
+        # save past epoch best actions
+        best_action_1_old = np.copy(best_action_1)
+        best_action_2_old = np.copy(best_action_2)
+
+        # get new best actions
+        for s in game.states:
+            best_action_1[s] = player1.get_best_action(s)
+            best_action_2[s] = player2.get_best_action(s)
+
+        # assess convergence
+        if np.array_equiv(best_action_1,best_action_1_old) and np.array_equiv(best_action_2,best_action_2_old):
+            same_best_action_t += 1
+        else:
+            same_best_action_t = 0
+        if same_best_action_t == convergence_target:
+            break
+
+        # output
+        show_epoch_outcome(epoch, reward, best_action_1, best_action_2, freq_states, freq_actions1, freq_actions2, player1.epsilon, game, game.payoffs, [player1, player2])
+        rewards.append(reward)
+        epsilons.append(player1.epsilon)
+
+        # epsilon is decreasing
+        player1.epsilon *= 0.99
+        player2.epsilon *= 0.99
+
+
+
+    for r in zip(*rewards):
+        # Moving average to smooth spikes
+        r = pd.DataFrame({'r': np.asarray(r)}).r.ewm(span=50).mean().values
+        plt.plot(range(0, len(rewards)), np.array(r))
+    plt.title('Rewards')
+    plt.xlabel('Period')
+    plt.ylabel('Reward')
+    plt.legend(['p1', 'p2'], loc='lower center')
+    plt.show()
+
+    plt.plot(np.array(epsilons))
+    plt.title('Exploration rate')
+    plt.xlabel('Period')
+    plt.ylabel('Epsilon')
+    plt.show()
+
+if __name__ == '__main__':
+    main()
