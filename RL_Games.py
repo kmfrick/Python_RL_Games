@@ -146,8 +146,7 @@ def main():
     alpha2 = 0.5
     eps0 = 0.25
     gamma = 0.99
-    # prisoner_dilemma, battle_sexes, stag_hunt, chicken, matching_pennies, rock_paper_scissor, optional_prisoner_dilemma, traveler_dilemma
-    game_mode = "prisoner_dilemma"
+    game_mode = 'price_game_ext'
 
     # initialize game and players
     game = StaticGame(game_mode, n_agents, memory)
