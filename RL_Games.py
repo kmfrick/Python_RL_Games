@@ -21,14 +21,14 @@ class StaticGame():
         self.payoffs = self.payoffs_for_game[game]
         self.n_actions = len(self.payoffs)
         self.memory = memory
-        self.rng = np.random.default_rng(time.time())
+        self.rng = np.random.default_rng(int(time.time()))
         self.n_states = self.n_actions ** (n_agents * memory)    # memory_length = 1
         self.states = list(range(0, self.n_states))
         self.next_state = np.array_split(self.states, self.n_actions)
         self.initial_state = 0
 
     def reset_initial_state(self):
-        self.initial_state = self.rng.random.choice(self.states)
+        self.initial_state = self.rng.choice(self.states)
         return self.initial_state
 
     def get_payoffs(self, action1, action2):
@@ -60,10 +60,10 @@ class Agent():
         '''
         Computes current action under e-greedy exploration
         '''
-        p = game.rng.uniform(0, 1)
+        p = self.game.rng.uniform(0, 1)
         if p < self.epsilon:
             #exploration
-            return game.rng.choice(self.strategy_set)
+            return self.game.rng.choice(self.strategy_set)
         else:
             #exploitation (greedy action)
             return self.get_best_action(state)
