@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 
 import matplotlib.pyplot as plt
@@ -232,5 +233,5 @@ def main():
     plt.show()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
